@@ -1,0 +1,32 @@
+<!--<div class="jumbotron">-->
+  <!--<h1>kms-ci-gui</h1>-->
+  <!--<p class="lead">-->
+    <!--&lt;!&ndash;<img src="images/yeoman.png" alt="I'm Yeoman"><br>&ndash;&gt;-->
+    <!--Your friendly neighborhood kms-ci-framework interface.-->
+  <!--</p>-->
+  <!--&lt;!&ndash;<p><a class="btn btn-lg btn-success" ng-href="#">Splendid!<span class="glyphicon glyphicon-ok"></span></a></p>&ndash;&gt;-->
+<!--</div>-->
+
+<div class="row marketing">
+    <p>
+        Tasks to run:
+        <div>
+            <span ng-repeat="task in tasks" style="margin-left:10px;">
+                <input ng-model="task.value" type="checkbox" name="task" style="margin-right:1px;"/>{{task.title}}
+                <span class="glyphicon glyphicon-question-sign" data-toggle="tooltip" data-placement="top" ng-attr-title="{{task.summary}}"></span>
+            </span>
+        </div>
+    </p>
+    <p>
+        Parameters:
+        <div>
+            <div ng-repeat="opt in opts" ng-init="init()">
+                {{opt.title}}: <input ng-model="opt.value" type="text"/>
+                <span class="glyphicon glyphicon-question-sign" data-toggle="tooltip" data-placement="top" ng-attr-title="{{opt.summary}}"></span>
+            </div>
+        </div>
+    </p>
+    <p>
+        <button ng-click="run()">Run!</button>
+    </p>
+</div>
