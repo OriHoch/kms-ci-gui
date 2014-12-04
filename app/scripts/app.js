@@ -34,7 +34,48 @@ angular
   });
 
 
-angular.module('kmsci', []).factory('kmsci', ['$http', function($http){
+angular.module('kmsci', []).factory('kmsci', ['$http', '$timeout', function($http, $timeout){
+    var run = function(params) {
+        $('#main_run_output').removeClass('hidden');
+        $('#main_run_output img').removeClass('hidden');
+        $('#main_run_output pre').html('');
+        $http.jsonp('http://localhost:8066/?callback=JSON_CALLBACK', {
+            'params': {'cmd': 'run', 'params': params},
+            'cache': false
+        }).success(function(data){
+            if (data.ok) {
+                console.log(data.msg);
+                run_timeout();
+            } else {
+                alert('ERROR: ' + data.msg);
+            }
+        }).error(function(){
+            alert('UNEXPECTED ERROR!');
+        });
+    };
+    var run_timeout = function() {
+        $http.jsonp('http://localhost:8066/?callback=JSON_CALLBACK', {
+            'params': {'cmd': 'run_status'},
+            'cache': false
+        }).success(function(data){
+            if (data.ok) {
+                console.log(data.msg);
+                $('#main_run_output pre').append(data.stdout);
+                if (!data.done) {
+                    $timeout(run_timeout, 150);
+                } else {
+                    console.log('stderr: ', data.stderr);
+                    console.log('returnval: ', data.returnval);
+                    $('#main_run_output img').addClass('hidden');
+                }
+            } else {
+                alert('ERROR: ' + data.msg);
+            }
+        }).error(function(){
+            alert('UNEXPECTED ERROR!');
+        });
+    };
+
     return {
         help: function(callback) {
             callback({
@@ -75,9 +116,7 @@ angular.module('kmsci', []).factory('kmsci', ['$http', function($http){
             });
         },
         run: function(params) {
-            $http.post('http://localhost:8066/', {'params': params}).success(function(data){
-                console.log(data);
-            });
+            run(params);
         }
     };
 }]);
