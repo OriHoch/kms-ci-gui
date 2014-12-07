@@ -34,45 +34,49 @@ angular
   });
 
 
-angular.module('kmsci', []).factory('kmsci', ['$http', '$timeout', function($http, $timeout){
-    var run = function(params) {
-        $('#main_run_output').removeClass('hidden');
-        $('#main_run_output img').removeClass('hidden');
-        $('#main_run_output pre').html('');
-        $http.jsonp('http://localhost:8066/?callback=JSON_CALLBACK', {
-            'params': {'cmd': 'run', 'params': params},
-            'cache': false
-        }).success(function(data){
-            if (data.ok) {
-                console.log(data.msg);
-                run_timeout();
-            } else {
-                alert('ERROR: ' + data.msg);
-            }
-        }).error(function(){
-            alert('UNEXPECTED ERROR!');
+angular.module('kmsci', []).factory('kmsci', ['$http', '$timeout', '$q', function($http, $timeout, $q){
+    var run = function(params, statusCallback) {
+        return $q(function(resolve, reject) {
+            $http.jsonp('http://localhost:8066/?callback=JSON_CALLBACK', {
+                'params': {'cmd': 'run', 'params': params},
+                'cache': false
+            }).success(function(data){
+                if (data.ok) {
+                    statusCallback(data);
+                    run_timeout(statusCallback).then(function(data) {
+                        resolve(data);
+                    }, function(errmsg) {
+                        reject(errmsg);
+                    });
+                } else {
+                    reject('error: ' + data.msg);
+                }
+            }).error(function(){
+                reject('unexpected error');
+            });
         });
     };
-    var run_timeout = function() {
-        $http.jsonp('http://localhost:8066/?callback=JSON_CALLBACK', {
-            'params': {'cmd': 'run_status'},
-            'cache': false
-        }).success(function(data){
-            if (data.ok) {
-                console.log(data.msg);
-                $('#main_run_output pre').append(data.stdout);
-                if (!data.done) {
-                    $timeout(run_timeout, 150);
+    var run_timeout = function(statusCallback) {
+        return $q(function(resolve, reject) {
+            $http.jsonp('http://localhost:8066/?callback=JSON_CALLBACK', {
+                'params': {'cmd': 'run_status'},
+                'cache': false
+            }).success(function(data){
+                if (data.ok) {
+                    statusCallback(data);
+                    if (!data.done) {
+                        $timeout(function(){
+                            run_timeout(statusCallback).then(resolve, reject);
+                        }, 150);
+                    } else {
+                        resolve(data);
+                    }
                 } else {
-                    console.log('stderr: ', data.stderr);
-                    console.log('returnval: ', data.returnval);
-                    $('#main_run_output img').addClass('hidden');
+                    reject('ERROR: ' + data.msg);
                 }
-            } else {
-                alert('ERROR: ' + data.msg);
-            }
-        }).error(function(){
-            alert('UNEXPECTED ERROR!');
+            }).error(function(){
+                reject('UNEXPECTED ERROR!');
+            });
         });
     };
 
@@ -115,8 +119,8 @@ angular.module('kmsci', []).factory('kmsci', ['$http', '$timeout', function($htt
                 }
             });
         },
-        run: function(params) {
-            run(params);
+        run: function(params, statusCallback) {
+            return run(params, statusCallback);
         }
     };
 }]);

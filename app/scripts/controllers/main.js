@@ -28,7 +28,16 @@ angular.module('kmsCiGuiApp')
                     params.push('--'+param+' '+opt.value);
                 }
             });
-            kmsci.run(params.join(' '));
+            $('#main_run_output').removeClass('hidden');
+            $('#main_run_output img').removeClass('hidden');
+            $('#main_run_output pre').html('');
+            kmsci.run(params.join(' '), function(data){
+                $('#main_run_output pre').append(data.stdout);
+            }).then(function(data){
+                $('#main_run_output img').addClass('hidden');
+            }, function(errmsg) {
+                alert(errmsg);
+            });
         };
 
         kmsci.help(function(data) {

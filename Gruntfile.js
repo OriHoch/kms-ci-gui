@@ -384,9 +384,66 @@ module.exports = function (grunt) {
         configFile: 'test/karma.conf.js',
         singleRun: true
       }
-    }
+    },
+
+      kmsci: {}
+
   });
 
+    grunt.registerTask('kmsci', 'Run the kmsci server', function(target) {
+        if (grunt.option('no-kmsci')) return;
+        // this is the root path of the project you want to run against
+        // if you use a standard kmsci installation, that's the only argument you will need
+        var kmsciroot = grunt.option('kmsci-root');
+        if (typeof(kmsciroot) == 'undefined') {
+            // if you have a non-standard kmsci installation, you can point kmsci-bin to the kmsci binary directly
+            var kmscibin = grunt.option('kmsci-bin');
+            if (typeof(kmscibin) == 'undefined') {
+                // if you also don't have the kmsci bin, we don't know what to run!
+                grunt.fail.warn('you must pass the --kmsci-root or --kmsci-bin arguments.');
+            }
+        } else {
+            // in normal installation, we assume kmsci is under the vendor/bin directory
+            var kmscibin = kmsciroot + '/vendor/bin/kmsci';
+        }
+        // kmscipath is the configuration path, usually you don't need to pass this and we will use the kmsci-root argument
+        var kmscipath = grunt.option('kmsci-path');
+        if (typeof(kmscipath) == 'undefined') {
+            if (typeof(kmsciroot) == 'undefined') {
+                // if you don't have kmscipath or kmsciroot - we don't know what to do
+                grunt.fail.warn('if you did not pass the --kmsci-root argument, you must pass the --kmsci-path argument.');
+            } else {
+                // use the kmsciroot as the kmscipath
+                kmscipath = kmsciroot;
+            }
+        }
+        // at this point we should have:
+        // kmscibin = the kmsci binary
+        // kmscipath = the cwd to run under
+        var done = this.async();
+        var started = false;
+        var kmsci = grunt.util.spawn({
+            'cmd': kmscibin,
+            'args': ['--admin-server'],
+            'opts': {
+                'cwd': kmscipath
+            }
+        });
+        kmsci.stdout.on('data', function(data) {
+            if (!started || target != 'async') {
+                console.log(''+data);
+            }
+            if ((''+data).indexOf('Listening on localhost:8066...') > 0) {
+                started = true;
+                if (target == 'async') {
+                    done(true);
+                }
+            }
+        });
+        kmsci.on('close', function(code) {
+            console.log('kmsci exited with code: '+code);
+        });
+    });
 
   grunt.registerTask('serve', 'Compile then start a connect web server', function (target) {
     if (target === 'dist') {
@@ -394,7 +451,8 @@ module.exports = function (grunt) {
     }
 
     grunt.task.run([
-      'clean:server',
+        'kmsci:async',
+        'clean:server',
       'wiredep',
       'concurrent:server',
       'autoprefixer',
